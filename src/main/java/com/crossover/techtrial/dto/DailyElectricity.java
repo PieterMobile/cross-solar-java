@@ -23,6 +23,13 @@ public class DailyElectricity implements Serializable {
   
   private Long max;
 
+  public DailyElectricity() {
+	this.sum =new Long(0); 
+	this.min = new Long(9999999);
+	this.max=new Long(0);
+	this.average = new Double(0);
+  }
+  
   public LocalDate getDate() {
     return date;
   }

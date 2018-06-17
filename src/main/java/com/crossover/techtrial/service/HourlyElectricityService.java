@@ -5,7 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 /**
- * HourlyElectricityService interface for all services realted to HourlyElectricity.
+ * HourlyElectricityService interface for all services related to HourlyElectricity.
  * @author Crossover
  *
  */

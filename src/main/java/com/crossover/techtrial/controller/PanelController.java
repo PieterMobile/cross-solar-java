@@ -5,10 +5,15 @@ import com.crossover.techtrial.model.HourlyElectricity;
 import com.crossover.techtrial.model.Panel;
 import com.crossover.techtrial.service.HourlyElectricityService;
 import com.crossover.techtrial.service.PanelService;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +60,7 @@ public class PanelController {
   public ResponseEntity<?> saveHourlyElectricity(
       @PathVariable(value = "panel-serial") String panelSerial, 
       @RequestBody HourlyElectricity hourlyElectricity) {
+
     return ResponseEntity.ok(hourlyElectricityService.save(hourlyElectricity));
   }
    
@@ -64,7 +70,7 @@ public class PanelController {
   
   @GetMapping(path = "/api/panels/{panel-serial}/hourly")
   public ResponseEntity<?> hourlyElectricity(
-      @PathVariable(value = "banel-serial") String panelSerial,
+      @PathVariable(value = "panel-serial") String panelSerial,
       @PageableDefault(size = 5,value = 0) Pageable pageable) {
     Panel panel = panelService.findBySerial(panelSerial);
     if (panel == null) {
@@ -85,11 +91,37 @@ public class PanelController {
   @GetMapping(path = "/api/panels/{panel-serial}/daily")
   public ResponseEntity<List<DailyElectricity>> allDailyElectricityFromYesterday(
       @PathVariable(value = "panel-serial") String panelSerial) {
-    List<DailyElectricity> dailyElectricityForPanel = new ArrayList<>();
+//    List<DailyElectricity> dailyElectricityForPanel = new ArrayList<>();
+
     /**
      * IMPLEMENT THE LOGIC HERE and FEEL FREE TO MODIFY OR ADD CODE TO RELATED CLASSES.
      * MAKE SURE NOT TO CHANGE THE SIGNATURE OF ANY END POINT. NO PAGINATION IS NEEDED HERE.
      */
+    Panel panel = panelService.findBySerial(panelSerial);
+    if (panel == null) {
+      return ResponseEntity.notFound().build();
+    }
+    Page<HourlyElectricity> page = hourlyElectricityService.getAllHourlyElectricityByPanelId(
+            panel.getId(),  PageRequest.of(0, 24));
+    List<HourlyElectricity> hourEletricities = page.getContent();
+    HashMap<LocalDate, DailyElectricity> dailyEnergyByPanels =  new HashMap<>();
+    if(hourEletricities!= null && !hourEletricities.isEmpty()) {
+      for (HourlyElectricity hourlyElectricity : hourEletricities) {
+        LocalDateTime readingAt = hourlyElectricity.getReadingAt();
+        LocalDate dateKey = readingAt.toLocalDate();
+        DailyElectricity currentDay = dailyEnergyByPanels.containsKey(dateKey) ?  dailyEnergyByPanels.get(dateKey): new DailyElectricity();
+        currentDay.setSum(hourlyElectricity.getGeneratedElectricity()+currentDay.getSum());
+        currentDay.setMin(hourlyElectricity.getGeneratedElectricity() < currentDay.getMin() ?
+                hourlyElectricity.getGeneratedElectricity():currentDay.getMin()  );
+        currentDay.setMax(hourlyElectricity.getGeneratedElectricity() > currentDay.getMax() ?
+                hourlyElectricity.getGeneratedElectricity():currentDay.getMax()  );
+        if(currentDay.getSum() != 0)
+          currentDay.setAverage((double) Long.divideUnsigned(currentDay.getSum(), 24));
+        currentDay.setDate(hourlyElectricity.getReadingAt().toLocalDate() );
+        dailyEnergyByPanels.put(dateKey, currentDay);
+      }
+    }
+    List<DailyElectricity> dailyElectricityForPanel = new ArrayList<>(dailyEnergyByPanels.values());
     return ResponseEntity.ok(dailyElectricityForPanel);
   }
 }

@@ -27,5 +27,5 @@ public class HourlyElectricityServiceImpl implements HourlyElectricityService {
   public Page<HourlyElectricity> getAllHourlyElectricityByPanelId(Long panelId, Pageable pageable) {
     return hourlyElectricityRepository.findAllByPanelIdOrderByReadingAtDesc(panelId, pageable);
   }
-  
+
 }
